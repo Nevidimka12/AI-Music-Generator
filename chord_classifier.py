@@ -1,5 +1,4 @@
 from chord_extractor.extractors import Chordino
-import mingus.core.chords as chords
 
 
 def transform_song_to_data(filename):

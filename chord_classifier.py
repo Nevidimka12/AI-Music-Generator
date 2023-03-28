@@ -13,3 +13,9 @@ def transform_song_to_data(filename):
         prev_len = chord[1]
 
     return data  # contains elements in format (chord, duration)
+
+def detect_BPM(song_name):
+    y, sr = librosa.load(song_name)
+    y_percussive = librosa.effects.percussive(y)
+    tempo, _ = librosa.beat.beat_track(y=y_percussive, sr=sr)
+    return tempo

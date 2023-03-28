@@ -1,4 +1,5 @@
 from chord_extractor.extractors import Chordino
+import librosa
 
 def detect_BPM(song_name):
     y, sr = librosa.load(song_name)

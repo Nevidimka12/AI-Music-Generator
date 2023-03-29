@@ -21,7 +21,7 @@ def transform_song_to_data(filename):
         data.append((chord[0], chord[1]-prev_len))
         prev_len = chord[1]
 
-    return data, detect_BPM(filename)  # data contains elements in format (chord, duration)
+    return (data, detect_BPM(filename))  # data contains elements in format (chord, duration)
 
 def save_chords_as_midi(chord_data, BPM=60):
 

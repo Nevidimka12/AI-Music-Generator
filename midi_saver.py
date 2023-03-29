@@ -1,6 +1,5 @@
 from mingus.core import chords
 import librosa
-from util_functions import decompose_chord
 
 
 def decompose_chord(chord):

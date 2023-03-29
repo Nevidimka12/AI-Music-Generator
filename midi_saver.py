@@ -1,5 +1,6 @@
 from mingus.core import chords
 import librosa
+from midiutil import MIDIFile
 
 
 def decompose_chord(chord):
@@ -8,8 +9,6 @@ def decompose_chord(chord):
     else:
         return []
      
-    from midiutil import MIDIFile
-
 
 def save_chords_as_midi(chord_data, BPM=60):
 

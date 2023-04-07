@@ -1,8 +1,13 @@
 from chord_extractor.extractors import Chordino
 import librosa
 from midiutil import MIDIFile
-from util_functions import decompose_chord
 
+
+def decompose_chord(chord):
+    if chord != 'N':  # 'N' means no chord is played
+        return chords.from_shorthand(chord)  # transforming string chord into array of string notes
+    else:
+        return []
 
 def detect_BPM(song_name):
     y, sr = librosa.load(song_name)

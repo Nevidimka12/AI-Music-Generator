@@ -1,42 +1,57 @@
+!pip install catboost
 import json
 import os
 import numpy as np
 import pandas as pd
 from catboost.utils import create_cd
 from catboost import CatBoostClassifier
+from catboost import CatBoostRegressor
 
 np.set_printoptions(precision=4)
 
-df = pd.read_csv('DataFrame.csv', index_col = "Unnamed: 0")
-df = df.drop('99', axis = 1)
+df_for_chord = pd.read_csv('/content/drive/MyDrive/DataFrame.csv', index_col = "Unnamed: 0")
+df_for_duration = pd.read_csv('/content/drive/MyDrive/DataFrame.csv', index_col = "Unnamed: 0")
+df_for_chord = df_for_chord.drop('99', axis = 1)
 
 from sklearn.model_selection import train_test_split
-X_train, X_validation, y_train, y_validation = train_test_split(df.drop('target', axis = 1), df['target'], random_state=13, test_size=0.2)
+X_train, X_validation, y_train, y_validation = train_test_split(df_for_chord.drop('target', axis = 1), df_for_chord['target'], random_state=13, test_size=0.2)
+X_train1, X_validation1, y_train1, y_validation1 = train_test_split(df_for_duration.drop('99', axis = 1), df_for_duration['99'], random_state=13, test_size=0.2)
 
 feature_names = dict()
-for column, name in enumerate(df):
+for column, name in enumerate(df_for_chord):
     if column == 0:
         continue
     feature_names[column] = name
 
 create_cd(
     label=0,
-    cat_features=list(range(1, df.columns.shape[0])),
+    cat_features=list(range(1, df_for_chord.columns.shape[0])),
     feature_names=feature_names,
     output_path=os.path.join('train.cd')
 )
 
 model = CatBoostClassifier(
-    iterations=30,
-    learning_rate=1,
-    #task_type = "GPU"
+    iterations=300,
+    depth = 5,
+    learning_rate=0.4,
+    task_type = "GPU"
 )
+
 model.fit(
     X_train, y_train,
     eval_set=(X_validation, y_validation),
-    plot=False
+    plot=True
 )
 
+model2 = CatBoostRegressor(iterations=600,
+                        learning_rate=0.01,
+                        task_type = "GPU"
+                        )
+model2.fit(
+    X_train1, y_train1,
+    eval_set=(X_validation1, y_validation1),
+    plot=True
+)
 
 def filler(arr):
     for_model = []
@@ -46,7 +61,7 @@ def filler(arr):
 
 
 def decode_chord_data(chord_data):
-    file = open("Decode.json")
+    file = open("/content/drive/MyDrive/Decode.json")
     decoder = json.load(file)
     file.close()
 
@@ -59,7 +74,7 @@ def decode_chord_data(chord_data):
 
 def encode_chord_data(chord_data):
 
-    file = open("Decode.json")
+    file = open("/content/drive/MyDrive/Decode.json")
     decoder = json.load(file)
     file.close()
 
@@ -76,6 +91,7 @@ def encode_chord_data(chord_data):
 
 def predict_sequence(chord_data, n, predicted_chord_durations=1):
     chord_data = encode_chord_data(chord_data)
+    print(chord_data)
     sequence = [j for sub in chord_data for j in sub]
     result = list(chord_data)
 
@@ -85,9 +101,8 @@ def predict_sequence(chord_data, n, predicted_chord_durations=1):
         sequence = filler(sequence)
     for _ in range(n):
         predicted_chord = int(model.predict(data=sequence))
-        predicted_dur = predicted_chord_durations
-
         sequence.append(predicted_chord)
+        predicted_dur = model2.predict(data=sequence)
         sequence.append(predicted_dur)
         sequence = sequence[2:]
 

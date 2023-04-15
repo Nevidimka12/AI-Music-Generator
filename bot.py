@@ -51,7 +51,8 @@ def audio_reply(message):
     item1 = types.KeyboardButton("Хочу получить wav файл")
     item2 = types.KeyboardButton("Хочу получить mid файл")
     markup.add(item1, item2)
-    midi_saver.save_chords_as_midi(generation.predict_sequence(chord_classifier.transform_song_to_data('aaa1.mp3')[0], n=5, predicted_chord_durations=1.337))
+    song_data, BPM = chord_classifier.transform_song_to_data('aaa1.mp3')
+    midi_saver.save_chords_as_midi(generation.predict_sequence(song_data, n=5, predicted_chord_durations=1.337), BPM)
     os.system('timidity result.mid -Ow -o result_rec.wav')
     bot.send_message(message.chat.id, 'Выбери, какой файл получить:', reply_markup=markup)
 

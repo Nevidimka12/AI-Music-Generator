@@ -9,8 +9,10 @@ import pretty_midi
 import tensorflow as tf
 import librosa
 import melody_classifier as mc
+from random import shuffle
 
-
+# model = CatBoostClassifier()
+# model.load_model("Chord_model_filt")
 model_chords = CatBoostClassifier()
 model_chords.load_model('cat_chords')
 
@@ -24,25 +26,9 @@ def mse_with_positive_pressure(y_true: tf.Tensor, y_pred: tf.Tensor):
 tf.keras.utils.get_custom_objects()['mse_with_positive_pressure'] = mse_with_positive_pressure
 model_melody = tf.keras.models.load_model('melodyLSTM13.06.23.h5')
 
-
-class Net(nn.Module):
-
-    def __init__(self, input_size, output_size, p=0.4):
-        super(Net, self).__init__()
-        self.fc1 = nn.Linear(input_size, 64)
-        self.fc2 = nn.Linear(64,  output_size)
-        self.dropout = nn.Dropout(p)
-
-    def forward(self, x):
-        out = self.fc1(x)
-        out = self.dropout(self.fc2(out))
-        return out
+model = tf.keras.models.load_model('chords.h5')
 
 
-X_shape = 99
-model = Net(X_shape, 1)
-model.load_state_dict(torch.load('model_dur1'))
-model.eval()
 vocab_size = 128
 seq_length = 25
 
@@ -56,9 +42,69 @@ def predict(model, input_seq):
 
 def filler(arr):
     for_model = []
-    while len(for_model) < 98:
+    while(len(for_model) < 8):
+        for_model += arr
+    for_model = for_model[len(for_model)-9:len(for_model)-1]
+    return for_model
+
+
+def shuffle_for_pair(arr):
+    new_arr = []
+    for i in range(0, len(arr)-1, 2):
+        new_arr.append((arr[i], arr[i+1]))
+    shuffle(new_arr)
+    y = []
+    for i in new_arr:
+        y.append(i[0])
+        y.append(i[1])
+    return y
+
+
+def filler_for_chord(arr):
+    for_model = []
+    while(len(for_model) < 98):
         for_model += arr
     return for_model[:98]
+
+
+def predict_sequence(chord_data, pred_len):
+    chord_data = encode_chord_data(chord_data)
+    sequence_for_chord = [i for p in chord_data for i in p]
+    sequence_for_duration = [i for p in chord_data for i in p]
+    result = list(chord_data)
+
+    seq_dur = []
+    if len(sequence_for_duration) > 8:
+        sequence_for_duration = sequence_for_duration[len(sequence_for_duration)-9:len(sequence_for_duration)-1]
+    elif len(sequence_for_duration) < 8:
+        sequence_for_duration = filler(sequence_for_duration)
+    for i in range(0, len(sequence_for_duration)-1, 2):
+        chord = sequence_for_duration[i]
+        duration = sequence_for_duration[i+1]
+        seq_dur.append(chord)
+        seq_dur.append(duration)
+
+    if len(sequence_for_chord) > 98:
+        sequence_for_chord = sequence_for_chord[-98:]
+    elif len(sequence_for_chord) < 98:
+        sequence_for_chord = filler_for_chord(sequence_for_chord)
+
+    now_len = 0
+
+    while now_len < pred_len:
+        predicted_chord = int(model_chords.predict(data=sequence_for_chord))
+        seq_dur.append(predicted_chord)
+        seq_for_predict = convert(seq_dur)
+        predicted_duration = model.predict(seq_for_predict)[0][0]
+        seq_dur.append(predicted_duration)
+        sequence_for_chord.append(predicted_chord)
+        sequence_for_chord.append(predicted_duration)
+        sequence_for_chord = sequence_for_chord[2:]
+        seq_dur = seq_dur[2:]
+        result.append((predicted_chord, predicted_duration))
+        now_len+=predicted_duration
+
+    return decode_chord_data(result)
 
 
 def decode_chord_data(chord_data):
@@ -100,44 +146,13 @@ def cut_out_silence(chord_data, silence_duration):  # Убирает тишин�
     return new_chord_data
 
 
-def convert_to_2d(arr):
-    arr1 = np.zeros((1, len(arr)))
-    for i in range(0, len(arr)):
-        arr1[0][i] = arr[i]
-    return arr1
-
-
-def convert_to_1d(arr):
-    arr1 = []
-    for i in range(0, len(arr)):
-        arr1.append(arr[i])
-    return arr1
-
-
-def predict_sequence(chord_data, duration):
-    chord_data = encode_chord_data(chord_data)
-    sequence = [i for p in chord_data for i in p]
-    result = list(chord_data)
-    if len(sequence) > 98:
-        sequence = sequence[-98:]
-    elif len(sequence) < 98:
-        sequence = filler(sequence)
-    seq = sequence
-    now_len = 0
-    while now_len < duration:
-        predicted_chord = int(model_chords.predict(data=seq))
-        seq.append(predicted_chord)
-        seq = convert_to_2d(seq)
-        seq = torch.Tensor(seq).float()
-        predicted_duration = predict(model, seq)
-        seq = seq.numpy()
-        seq = np.insert(seq, 99, np.array([predicted_duration]))
-        result.append((int(seq[98]), float(seq[99])))
-        seq = seq[2:]
-        seq = convert_to_1d(seq)
-        now_len+=predicted_duration
-
-    return decode_chord_data(result)
+def convert(arr):
+    new_arr = np.zeros((1, 9, 1))
+    for i in range(0, len(arr)//2-1, 2):
+        new_arr[0][i][0] = arr[i]
+        new_arr[0][i][0] = arr[i+1]
+    new_arr[0][8][0] = arr[8]
+    return new_arr
 
 
 def add_N(data: pd.DataFrame) -> list:
@@ -275,3 +290,4 @@ def save_predict_melody(filename, dur):
     generated_notes = pd.DataFrame(generated_notes, columns=(*key_order, 'start', 'end'))
 
     return add_N(generated_notes)
+    

@@ -1,3 +1,5 @@
 # AI-Music-Generator - melody_training
 
-(Вставить текст)
+Создание и обуение LSTM модели
+
+Озвучивание, преобразование в midi

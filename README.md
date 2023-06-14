@@ -1,1 +1,5 @@
-# AI-Music-Generator
+# AI-Music-Generator - experiments
+
+В этой ветке хранится всё, что не вошло в итоговую версию, например:
+
+(Вставить текст)

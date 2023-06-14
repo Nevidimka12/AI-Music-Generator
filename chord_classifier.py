@@ -1,5 +1,5 @@
-from chord_extractor.extractors import Chordino
 import librosa
+import vamp
 
 def detect_BPM(song_name):
     y, sr = librosa.load(song_name)
@@ -7,15 +7,22 @@ def detect_BPM(song_name):
     tempo, _ = librosa.beat.beat_track(y=y_percussive, sr=sr)
     return tempo
 
+
 def transform_song_to_data(filename):
 
-    chordino = Chordino()
-    chords = chordino.extract(filename)
+    y, sr = librosa.load(filename)
+
+    chords = vamp.collect(y, sr, 'nnls-chroma:chordino')
+
     data = []
     prev_len = 0
 
-    for chord in chords:
-        data.append((chord[0], chord[1]-prev_len))
-        prev_len = chord[1]
+    for i in range(len(chords['list'])):
+        element = chords['list'][i]
+        label = str(element['label'])
+        timestamp = float(element['timestamp'])
+        #print(type(chords[lis]))
+        data.append((label, timestamp - prev_len))
+        prev_len = timestamp
 
-    return data, detect_BPM(filename)  # data contains elements in format (chord, duration)
+    return data # data contains elements in format (chord, duration)

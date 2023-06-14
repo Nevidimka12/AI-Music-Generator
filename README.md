@@ -1,5 +1,3 @@
-# AI-Music-Generator - experiments
-
-В этой ветке хранится всё, что не вошло в итоговую версию, например:
+# AI-Music-Generator - melody_training
 
 (Вставить текст)

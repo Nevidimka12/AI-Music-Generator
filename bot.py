@@ -45,7 +45,7 @@ def reply_to(chat_id, type):
         melody_data += generation.save_predict_melody(name_song, duration)
 
     midi_saver.save_song_as_midi(chord_data, melody_data, BPM=chord_classifier.detect_BPM(name_song),
-                                 transpose=-key_glob)
+                                 transpose=-key_glob, melody_volume=100, chords_volume=30)
 
     os.system('timidity result.mid -Ow -o result_rec.wav')
     os.system('timidity result.mid -Ow -o result_rec.mp3')
